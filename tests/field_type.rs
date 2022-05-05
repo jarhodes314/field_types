@@ -2,7 +2,11 @@
 
 extern crate variant_count;
 extern crate field_types;
+extern crate strum_macros;
+extern crate strum;
 
+use strum_macros::EnumVariantNames;
+use strum::VariantNames;
 use variant_count::VariantCount;
 use field_types::FieldType;
 
@@ -41,6 +45,14 @@ struct TestTypesDerive {
 struct TestTypeDerive {
     first: i32,
     second: bool,
+}
+
+#[derive(FieldType)]
+#[field_type_derive(VariantCount, Debug, Clone, PartialEq, EnumVariantNames)]
+#[field_type_attr(strum(serialize_all = "SCREAMING-KEBAB-CASE"))]
+struct TestDeriveArguments {
+    first: i32,
+    second_field: bool,
 }
 
 #[test]
@@ -136,4 +148,9 @@ fn into_field_type() {
     let fields: [TestTypesDeriveFieldType; TestTypesDeriveFieldType::VARIANT_COUNT] = test.into();
     assert_eq!(TestTypesDeriveFieldType::First(1), fields[0]);
     assert_eq!(TestTypesDeriveFieldType::Second(true), fields[1]);
+}
+
+#[test]
+fn derive_macro_arguments() {
+    assert_eq!(TestDeriveArgumentsFieldType::VARIANTS, ["FIRST", "SECOND-FIELD"]);
 }

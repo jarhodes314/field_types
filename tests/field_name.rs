@@ -2,9 +2,12 @@
 
 extern crate variant_count;
 extern crate field_types;
+extern crate strum_macros;
+extern crate strum;
 
 use variant_count::VariantCount;
 use field_types::FieldName;
+use strum_macros::EnumString;
 
 #[derive(FieldName)]
 struct Test {
@@ -41,6 +44,14 @@ struct TestTypesDerive {
 struct TestNameDerive {
     first: i32,
     second: bool,
+}
+
+#[derive(FieldName)]
+#[field_name_derive(VariantCount, Debug, Clone, PartialEq, EnumString)]
+#[field_name_attr(strum(ascii_case_insensitive))]
+struct TestDeriveArguments {
+    first: i32,
+    second_field: bool,
 }
 
 #[test]
@@ -137,4 +148,11 @@ fn field_name_str() {
     assert_eq!(Some(TestFieldName::First), TestFieldName::by_name("first"));
     assert_eq!(Some(TestFieldName::SecondField), TestFieldName::by_name("second_field"));
     assert_eq!(None, TestFieldName::by_name("third"));
+}
+
+#[test]
+fn field_name_fromstr() {
+    assert_eq!("FIRST".parse::<TestDeriveArgumentsFieldName>().unwrap(), TestDeriveArgumentsFieldName::First);
+    assert_eq!("first".parse::<TestDeriveArgumentsFieldName>().unwrap(), TestDeriveArgumentsFieldName::First);
+    assert_eq!("secondField".parse::<TestDeriveArgumentsFieldName>().unwrap(), TestDeriveArgumentsFieldName::SecondField);
 }

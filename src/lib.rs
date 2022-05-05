@@ -105,12 +105,13 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote, ToTokens};
 use heck::CamelCase;
 
-#[proc_macro_derive(FieldType, attributes(field_types, field_type, field_types_derive, field_type_derive))]
+#[proc_macro_derive(FieldType, attributes(field_types, field_type, field_types_derive, field_type_derive, field_types_attr, field_type_attr))]
 pub fn field_type(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let (vis, ty, generics) = (&ast.vis, &ast.ident, &ast.generics);
     let enum_ty = Ident::new(&(ty.to_string() + "FieldType"), Span::call_site());
     let derive = get_enum_derive(&ast.attrs, &["field_types_derive", "field_type_derive"], quote! {});
+    let attrs = get_enum_attr(&ast.attrs, &["field_types_attr", "field_type_attr"]);
 
     let fields = filter_fields(match ast.data {
         syn::Data::Struct(ref s) => &s.fields,
@@ -174,6 +175,7 @@ pub fn field_type(input: TokenStream) -> TokenStream {
 
     let tokens = quote! {
         #derive
+        #(#attrs)*
         #vis enum #enum_ty #generics
             #where_clause
         {
@@ -194,13 +196,14 @@ pub fn field_type(input: TokenStream) -> TokenStream {
     tokens.into()
 }
 
-#[proc_macro_derive(FieldName, attributes(field_types, field_name, field_types_derive, field_name_derive))]
+#[proc_macro_derive(FieldName, attributes(field_types, field_name, field_types_derive, field_name_derive, field_types_attr, field_name_attr))]
 pub fn field_name(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let (vis, ty, generics) = (&ast.vis, &ast.ident, &ast.generics);
     let enum_ty = Ident::new(&(ty.to_string() + "FieldName"), Span::call_site());
     let derive = get_enum_derive(&ast.attrs, &["field_types_derive", "field_name_derive"],
                             quote! { #[derive(Debug, PartialEq, Eq, Clone, Copy)] });
+    let attrs = get_enum_attr(&ast.attrs, &["field_types_attr", "field_name_attr"]);
 
     let fields = filter_fields(match ast.data {
         syn::Data::Struct(ref s) => &s.fields,
@@ -263,6 +266,7 @@ pub fn field_name(input: TokenStream) -> TokenStream {
 
     let tokens = quote! {
         #derive
+        #(#attrs)*
         #vis enum #enum_ty {
             #(#field_name_variants),*
         }
@@ -329,6 +333,23 @@ fn get_enum_derive(attrs: &[Attribute], derive_attr_names: &[&str], default: Tok
         .next()
         .map(|meta_list| quote! { #[#meta_list] })
         .unwrap_or(default)
+}
+
+fn get_enum_attr(attrs: &[Attribute], attr_names: &[&str]) -> Vec<TokenStream2> {
+    attrs.iter().filter_map(|attr| attr.parse_meta().ok().and_then(|meta| {
+        for attr_name in attr_names {
+            let attr_ident = Some(Ident::new(attr_name, Span::call_site()));
+            let ident = meta.path().get_ident();
+            if ident == attr_ident.as_ref() {
+                if let Meta::List(meta_list) = meta {
+                    return Some(meta_list.nested);
+                }
+            }
+        }
+        None
+    }))
+        .map(|meta_list| quote! { #[#meta_list] })
+        .collect()
 }
 
 fn filter_fields(fields: &Fields, skip_attr_name: &str) -> Vec<(Ident, Type, Ident)> {
