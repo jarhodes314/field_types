@@ -90,6 +90,7 @@ Use `FieldName` and/or `FieldType` in `derive` struct attribute.
 !*/
 
 extern crate proc_macro;
+extern crate proc_macro2;
 extern crate syn;
 extern crate quote;
 extern crate heck;
@@ -98,9 +99,9 @@ use std::iter::FromIterator;
 use proc_macro::TokenStream;
 use syn::{
     DeriveInput, Ident, Type, Attribute, Fields, Meta, Path, PathArguments, PathSegment,
-    export::{Span, TokenStream2},
     punctuated::Punctuated,
 };
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{quote, ToTokens};
 use heck::CamelCase;
 
